@@ -1,0 +1,103 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String         @id @default(uuid())
+  email          String         @unique
+  password       String?
+  name           String?
+  createdAt      DateTime       @default(now())
+  lastLogin      DateTime?
+  authProvider   AuthProvider   @default(EMAIL)
+  profilePicture String?
+  quizAttempts   QuizAttempt[]
+  quizResponses  QuizResponse[]
+  subscription   Subscription?
+}
+
+enum AuthProvider {
+  GOOGLE
+  APPLE
+  EMAIL
+}
+
+model QuizAttempt {
+  id                     String         @id @default(uuid())
+  userId                 String?
+  user                   User?          @relation(fields: [userId], references: [id])
+  startedAt              DateTime       @default(now())
+  completedAt            DateTime?
+  archetypeResult        String?
+  archetypePrimaryScore  Float?
+  archetypeSecondaryScore Float?
+  isCompleted            Boolean        @default(false)
+  responses              QuizResponse[]
+}
+
+model QuizResponse {
+  id            String      @id @default(uuid())
+  userId        String?
+  user          User?       @relation(fields: [userId], references: [id])
+  attemptId     String
+  attempt       QuizAttempt @relation(fields: [attemptId], references: [id])
+  questionId    Int
+  responseValue Int         // 1-5
+  createdAt     DateTime    @default(now())
+}
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  userId               String             @unique
+  user                 User               @relation(fields: [userId], references: [id])
+  stripeCustomerId     String
+  stripeSubscriptionId String
+  planType             PlanType
+  status               SubscriptionStatus
+  createdAt            DateTime           @default(now())
+  canceledAt           DateTime?
+  nextBillingDate      DateTime?
+}
+
+enum PlanType {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+}
+
+model ContentPage {
+  id           String      @id @default(uuid())
+  archetype    String
+  contentType  ContentType
+  content      String      @db.Text
+  updatedAt    DateTime    @updatedAt
+}
+
+enum ContentType {
+  FULL_PROFILE
+  BUSINESS_GUIDE
+  RESOURCES
+}
+
+model MonthlyInsight {
+  id          String   @id @default(uuid())
+  archetype   String
+  month       DateTime
+  title       String
+  content     String   @db.Text
+  publishedAt DateTime @default(now())
+}
+
